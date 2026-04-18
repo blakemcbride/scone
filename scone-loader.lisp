@@ -55,16 +55,22 @@
 (defvar *version*)
 (defvar *default-kb-pathname*)
 
+;;; Remember where this loader file lives so we can locate engine.lisp and
+;;; the kb/ directory relative to it, regardless of the user's CWD.
+(defvar *scone-root*
+  (make-pathname :name nil :type nil :version nil
+		 :defaults (or *load-truename* *compile-file-truename*
+			       *default-pathname-defaults*))
+  "Directory containing this scone-loader.lisp file.")
+
 (declaim (ftype (function (string &key (:verbose boolean)))
 		load-kb))
 
-(defun scone (&optional (version "scone-git"))
-  (setq *version* version)
-  (setq *default-kb-pathname* 
-    (format nil "/Users/sef/scone/~A/kb/anonymous.lisp"
-	    *version*))
-  (load (format nil "/Users/sef/scone/~A/engine"
-		*version*))
+(defun scone (&optional version)
+  (declare (ignore version))
+  (setq *default-kb-pathname*
+	(namestring (merge-pathnames "kb/anonymous.lisp" *scone-root*)))
+  (load (merge-pathnames "engine.lisp" *scone-root*))
   ;; If we're using a Scone engine that creates a separate scone package,
   ;; get into that package.
   (when (find-package :scone)
@@ -73,5 +79,5 @@
   (funcall (intern "LOAD-KB") "bootstrap")
   (values))
 
-(format t "~2%;;; Call (scone \"some-version-name\") to start Scone.~%")
+(format t "~2%;;; Call (scone) to start Scone.~%")
 

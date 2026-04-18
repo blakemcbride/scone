@@ -139,6 +139,34 @@
 ;;; The operations beyond this point must be as fast as possible.
 (declaim (optimize (speed 3) (space 0) (safety 0)))
 
+;;; Forward FTYPE declarations.  The Scone engine contains many
+;;; mutually-recursive functions plus a number of struct print-functions
+;;; that call engine functions whose DEFUN appears later in this file.
+;;; Without these declarations SBCL (and other strict compilers) emit a
+;;; STYLE-WARNING for each such forward reference.  Every name listed
+;;; below is genuinely defined later in this file.
+(declaim
+ (ftype function
+        add-derived-links-eq add-derived-links-internal
+        add-derived-links-is-a add-derived-links-map
+        check-defined-type-membership-internal check-defined-type-memberships
+        clear-marker clear-marker-pair connect-wire convert-type-to-indv
+        current-time-string defer-connection disambiguate disconnect-wire
+        downscan dump-element element-name element-type-label
+        english-internal eq-scan-internal externalize-marker fast-mark
+        fast-unmark fixup-role-filler flip-direction gen-iname
+        get-english-names get-namespace iname incompatible?
+        lookup-definitions lookup-element lookup-element-iname
+        lookup-element-or-defer lookup-element-test
+        lookup-string-in-namespace lowermost? map-node-role mark-boolean
+        mark-intersection mark-lowermost mark-rel-description mark-uppermost
+        merge-english-inverse new-has new-is-a new-type
+        populate-defined-type print-element print-element-iname
+        print-namespace process-deferred-connections register-definition
+        register-internal-name same-filename set-definition set-properties
+        show-ontology1 strip-counters unmark unravel-english-names
+        uppermost? upscan))
+
 ;;; ========================================================================
 (subsection "Variables That Control KB Input and Loading")
 

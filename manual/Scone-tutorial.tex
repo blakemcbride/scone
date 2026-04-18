@@ -1,0 +1,810 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[titlepage,twoside,openright,11pt]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp}
+\else
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{%
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath}
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{%
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{%
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{%
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[letterpaper,inner=1.25in,outer=1in,top=1in,bottom=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+% Each top-level \section starts on a new right-hand page,
+% so sections open like chapters in a printed book.
+\usepackage{titlesec}
+\newcommand{\sectionbreak}{\cleardoublepage}
+\ifLuaTeX
+  \usepackage{selnolig}
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{}
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Scone Tutorial},
+  pdfauthor={Blake McBride},
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!60!black,
+  citecolor=blue!50!black}
+
+\title{Scone Tutorial\\[6pt]
+  \large A Step-by-Step Introduction to the\\
+  Scone Knowledge-Base System}
+\author{A companion to the \emph{Scone User's Guide}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\noindent
+This tutorial is a companion to the \emph{Scone User's Guide} and
+walks a new user through building a small knowledge base from an
+empty Scone image. Scone was developed by Scott E.\ Fahlman and his
+group at Carnegie Mellon University's Language Technologies Institute.
+The examples in this tutorial are designed to run against the
+open-source Scone release maintained at
+\url{https://github.com/blakemcbride/scone}.
+
+The engine and core knowledge bases are copyright \copyright{}
+2003--2014 Carnegie Mellon University and are distributed under the
+Apache License, Version 2.0.
+
+\cleardoublepage
+\tableofcontents
+\cleardoublepage
+
+\section{About This Tutorial}\label{about-this-tutorial}
+
+This is a hands-on introduction to Scone. It assumes you can read
+and type simple Common Lisp expressions at a REPL, but it does not
+assume any prior experience with knowledge-base systems or with
+marker-passing inference. Each chapter introduces one idea, walks
+through a short example at the REPL, and ends with a small exercise
+that extends the example. Later chapters build on the knowledge base
+constructed in earlier ones, so the best way to use this tutorial
+is linearly, typing along as you go.
+
+\paragraph{What you will need.}
+\begin{itemize}
+\item
+  A Common Lisp implementation --- the examples are tested with Steel
+  Bank Common Lisp (SBCL), but any of CMUCL, CCL, LispWorks, or
+  Allegro should work.
+\item
+  A checkout of the Scone source tree, with \textbf{scone-loader.lisp}
+  at the top level.
+\item
+  A terminal window running your Lisp, from which you can read and
+  type. That is all.
+\end{itemize}
+
+\paragraph{A note on conventions.}
+Lines the reader should type at the REPL are shown with a leading
+asterisk, like this:
+
+\begin{verbatim}
+* (new-type {animal} {thing})
+\end{verbatim}
+
+Lines without an asterisk are either output produced by Scone or
+Lisp text that appears inside a multi-line expression. Internal
+element names are written in the Scone \textbf{\{curly-brace\}}
+notation throughout.
+
+\paragraph{What this tutorial is not.}
+It is not an encyclopedia of the Scone API. When you need the
+signature of a function or a list of all available predicates, turn
+to the \emph{Scone User's Guide}. Similarly, it is not a textbook on
+knowledge representation; for the deeper theory behind Scone's
+design, see Scott E.\ Fahlman, \emph{NETL: A System for Representing
+and Using Real-World Knowledge}, MIT Press, 1979.
+
+\section{Starting Scone}\label{starting-scone}
+
+Open a terminal in the top-level directory of your Scone checkout
+and start your Lisp. If you are using SBCL, the interaction will
+look like this:
+
+\begin{verbatim}
+$ sbcl
+This is SBCL 2.x.x, an implementation of ANSI Common Lisp.
+...
+* (load "scone-loader.lisp")
+
+;;; Call (scone) to start Scone.
+T
+\end{verbatim}
+
+The \textbf{scone-loader.lisp} file is a small convenience script
+that locates \textbf{engine.lisp} and the \textbf{kb/} directory
+relative to itself. Calling \textbf{(scone)} loads the engine and
+then loads the bootstrap knowledge base, which installs the handful
+of elements that the engine itself refers to:
+
+\begin{verbatim}
+* (scone)
+Loading KB "bootstrap".
+Assigning 0 as context marker, 1 as activation marker.
+31 deferred connections fixed, 0 remain.
+Load of "bootstrap" completed.  68 elements total.
+\end{verbatim}
+
+At this point Scone is running, but it only knows about the 68
+primitive elements installed by \textbf{bootstrap.lisp}. To get
+common-sense knowledge about animals, people, places, and so on,
+load the \textbf{core} knowledge base on top:
+
+\begin{verbatim}
+* (load-kb "core")
+Loading KB "core".
+Loading KB "core-components/upper".
+...
+Load of "core" completed.  3613 elements total.
+\end{verbatim}
+
+The core KB is a bundle of eleven files covering upper ontology,
+units, space, time, simple physics, biology, information, social
+structure, the person model, episodic memory, and geopolitics.
+Loading it populates Scone with about 3,600 elements --- the raw
+material every subsequent chapter builds on.
+
+\paragraph{A first sanity check.}
+With \textbf{core} loaded, ask Scone whether a dog is an animal:
+
+\begin{verbatim}
+* (is-x-a-y? {dog} {animal})
+:YES
+\end{verbatim}
+
+The answer \textbf{:YES} confirms that the is-a hierarchy from the
+core KB is in place.
+
+\paragraph{Stopping.}
+Scone has no explicit shutdown --- just exit your Lisp
+(\textbf{(sb-ext:exit)} in SBCL, or \textbf{(quit)} in most other
+implementations). The in-memory KB is discarded. To preserve work
+done in a session, use \textbf{checkpoint-kb}, covered in
+Chapter~\ref{saving-your-work}.
+
+\paragraph{Exercise.}
+Confirm that a \textbf{\{cat\}} is an \textbf{\{animal\}}, and that
+a \textbf{\{rock\}} is \emph{not} an \textbf{\{animal\}}. What does
+\textbf{is-x-a-y?} return in the second case?
+
+\section{Elements and Namespaces}\label{elements-and-namespaces}
+
+Everything in a Scone KB is an \emph{element}. The top of the
+type hierarchy is the built-in element \textbf{\{thing\}}: every
+other element is, directly or indirectly, a kind of \textbf{\{thing\}}.
+
+Elements come in two main flavors. A \emph{type} represents a
+category --- \textbf{\{dog\}}, \textbf{\{animal\}},
+\textbf{\{furniture\}}. An \emph{individual} represents a specific
+thing --- the particular dog named Rover, the Empire State Building,
+yesterday. In code you create them with \textbf{new-type} and
+\textbf{new-indv} respectively.
+
+\paragraph{Your first element.}
+Let's build a small zoo. First, make a new namespace so that our
+tutorial elements don't collide with the core KB's vocabulary:
+
+\begin{verbatim}
+* (in-namespace "zoo")
+#<namespace "zoo">
+\end{verbatim}
+
+A \emph{namespace} is just a named dictionary that keeps internal
+names distinct. All subsequent \textbf{new-type} and
+\textbf{new-indv} calls will register their elements in the
+\textbf{"zoo"} namespace. Now create a type and two individuals:
+
+\begin{verbatim}
+* (new-type {dog} {animal})
+{zoo:dog}
+* (new-indv {Rover} {dog})
+{zoo:Rover}
+* (new-indv {Whiskers} {cat})
+{zoo:Whiskers}
+\end{verbatim}
+
+Each call returns the new element, printed in curly-brace notation.
+Because \textbf{*print-namespace-in-elements*} defaults to
+\textbf{:maybe}, elements from a namespace other than the current
+one (for example \textbf{\{animal\}}, which lives in
+\textbf{common}) are printed with their namespace prefix the first
+time they appear.
+
+\paragraph{Looking up elements.}
+Given a name, \textbf{lookup-element} returns the element it refers
+to, or \textbf{nil} if none exists:
+
+\begin{verbatim}
+* (lookup-element {Rover})
+{zoo:Rover}
+* (lookup-element {Fluffy})
+NIL
+\end{verbatim}
+
+Most Scone functions take elements \emph{or} element-inames (the
+\textbf{\{name\}} literal syntax is itself an iname that gets
+resolved on demand), so you rarely need to call
+\textbf{lookup-element} yourself. It is useful when you have a
+bare string and want to convert it to an element.
+
+\paragraph{Exercise.}
+Create another individual \textbf{\{Fido\}} as a \textbf{\{dog\}}.
+Then, without looking, guess what \textbf{(is-x-a-y? \{Fido\}
+\{animal\})} will return --- and verify at the REPL.
+
+\section{The Is-A Hierarchy}\label{the-is-a-hierarchy}
+
+The backbone of a Scone KB is its \emph{is-a hierarchy}: a web of
+parent-of and instance-of relationships that says how every element
+relates to the types above it. \textbf{\{dog\}} is a kind of
+\textbf{\{mammal\}}; \textbf{\{mammal\}} is a kind of
+\textbf{\{animal\}}; Rover \emph{is} a \textbf{\{dog\}}. That chain
+of statements is what lets Scone conclude that Rover is an animal
+without anyone having said so directly.
+
+\paragraph{Declaring relationships.}
+When you create a new type or individual, the \textbf{parent}
+argument automatically puts it into the is-a hierarchy. If you need
+to add another parent later, use \textbf{new-is-a}:
+
+\begin{verbatim}
+* (new-is-a {Rover} {pet})
+{zoo:is-a-12345}
+\end{verbatim}
+
+Rover is now simultaneously a \textbf{\{dog\}} and a
+\textbf{\{pet\}}. Scone returns the newly-created IS-A link
+element; the internal name is auto-generated and rarely interesting.
+
+\paragraph{Querying the hierarchy.}
+The predicate \textbf{is-x-a-y?} returns one of three values:
+
+\begin{itemize}
+\item
+  \textbf{:YES} --- it is definitely the case that \textbf{x} is a
+  \textbf{y} in the current context.
+\item
+  \textbf{:NO} --- it is definitely \emph{not} the case that
+  \textbf{x} is a \textbf{y}, and asserting otherwise would cause a
+  contradiction.
+\item
+  \textbf{:MAYBE} --- the KB has no definite knowledge either way.
+\end{itemize}
+
+\begin{verbatim}
+* (is-x-a-y? {Rover} {mammal})
+:YES
+* (is-x-a-y? {Rover} {furniture})
+:MAYBE
+\end{verbatim}
+
+The second result illustrates Scone's open-world assumption: unless
+something in the KB rules out Rover being furniture, the answer is
+\textbf{:MAYBE}, not \textbf{:NO}. We'll see how to make exclusions
+explicit in Chapter~\ref{splits-and-disjointness}.
+
+\paragraph{Siblings: EQ and NOT-EQ.}
+Alongside \textbf{new-is-a}, Scone supports \textbf{new-eq}
+(identifying two elements as the same thing) and \textbf{new-not-eq}
+(asserting they are distinct). Use \textbf{new-eq} when you discover
+that two independently-created elements refer to the same entity
+--- for example, ``the mayor'' turns out to be the same person as
+``Jane Smith.''
+
+\paragraph{Exercise.}
+Create a type \textbf{\{working-dog\}} as a subtype of
+\textbf{\{dog\}}, then create \textbf{\{Lassie\}} as a
+\textbf{\{working-dog\}}. Confirm that \textbf{(is-x-a-y?
+\{Lassie\} \{mammal\})} returns \textbf{:YES}.
+
+\section{Listing and Showing}\label{listing-and-showing}
+
+When a knowledge base grows beyond a handful of elements, looking at
+it in bulk becomes important. Scone provides three families of
+functions for this:
+
+\begin{itemize}
+\item
+  \textbf{list-} functions return a Lisp list of matching elements.
+  Good for programmatic use.
+\item
+  \textbf{show-} functions print a human-readable report to the
+  \textbf{*show-stream*} (by default standard output). Good for
+  browsing at the REPL.
+\item
+  \textbf{mark-} functions propagate markers over the KB. These are
+  the underlying primitives; most users rarely call them directly.
+\end{itemize}
+
+\paragraph{What kinds of dogs are there?}
+
+\begin{verbatim}
+* (list-all-x {dog})
+({zoo:Lassie} {zoo:Fido} {zoo:Rover} ...)
+\end{verbatim}
+
+\textbf{list-all-x} returns every element that is an instance or
+subtype of its argument. There's also a \textbf{show-all-x} that
+prints the result in a readable form with some indentation:
+
+\begin{verbatim}
+* (show-all-x {dog})
+\end{verbatim}
+
+\paragraph{Surveying the ontology.}
+\textbf{show-ontology} prints the full is-a tree below a given
+element:
+
+\begin{verbatim}
+* (show-ontology :under {mammal} :n 20)
+\end{verbatim}
+
+The \textbf{:under} keyword restricts the report to the subtree
+rooted at \textbf{\{mammal\}}. The \textbf{:n} keyword caps the
+output at the given number of elements, which is handy when you
+aren't sure how big the subtree is.
+
+\paragraph{English names.}
+Scone maintains a two-way dictionary between elements and English
+words. \textbf{show-synonyms} takes a string and prints every
+element currently known by that name:
+
+\begin{verbatim}
+* (show-synonyms "dog")
+\end{verbatim}
+
+You may see more than one element if the core KB has entries for,
+say, the verb ``to dog'' alongside the noun.
+
+\paragraph{Exercise.}
+Print the ontology under \textbf{\{bird\}} with \textbf{:n 15}, and
+try to pick out the difference between a ``type'' line and an
+``indv'' line in the output.
+
+\section{Roles}\label{roles}
+
+So far the only fact we can state about an element is its type. But
+most useful knowledge is relational: \emph{Rover's owner is Alice},
+\emph{Rover's color is brown}. Scone represents relationships like
+these with \emph{roles}.
+
+A role is a named slot attached to a type. When you say ``every dog
+has an owner,'' what you are really doing is giving the type
+\textbf{\{dog\}} an \textbf{owner} role whose filler must be a
+\textbf{\{person\}}. Every instance of \textbf{\{dog\}}
+automatically inherits the role; filling it gives a specific fact
+about a specific dog.
+
+\paragraph{Two kinds of role.}
+\textbf{new-indv-role} creates a role that takes a \emph{single}
+filler --- ``a dog has (one) owner.'' \textbf{new-type-role} creates
+a role that takes \emph{many} fillers --- ``a dog has (any number
+of) siblings.''
+
+\begin{verbatim}
+* (new-indv-role {owner} {dog} {person})
+{zoo:owner}
+* (new-type-role {sibling} {dog} {dog})
+{zoo:sibling}
+\end{verbatim}
+
+Both calls take three arguments: the role's name, the \emph{owner}
+type (the kind of thing that \emph{has} the role), and the
+\emph{filler} type (the kind of thing that the role's value must
+be).
+
+\paragraph{Filling a role.}
+To say who a specific dog's owner is, use \textbf{x-is-the-y-of-z}:
+
+\begin{verbatim}
+* (new-indv {Alice} {person})
+{zoo:Alice}
+* (x-is-the-y-of-z {Alice} {owner} {Rover})
+{zoo:eq-54321}
+\end{verbatim}
+
+Read that as ``Alice is the owner of Rover.'' Scone returns the
+underlying EQ-link (again, the name is auto-generated).
+
+Now you can ask questions:
+
+\begin{verbatim}
+* (the-x-of-y {owner} {Rover})
+{zoo:Alice}
+\end{verbatim}
+
+\paragraph{Roles are first-class elements.}
+The role \textbf{\{owner\}} is itself a Scone element. That means
+you can subclass it, cancel it, or put meta-information on it using
+the same tools you'd use for any other concept --- there is no
+separate ``role language.''
+
+\paragraph{Exercise.}
+Give Whiskers the cat an owner \textbf{\{Bob\}}. Then verify that
+\textbf{(the-x-of-y \{owner\} \{Whiskers\})} returns \textbf{\{Bob\}}
+and that \textbf{(the-x-of-y \{owner\} \{Rover\})} still returns
+\textbf{\{Alice\}}.
+
+\section{Statements}\label{statements}
+
+A \emph{statement} is a stand-alone assertion that two elements are
+related in a particular way. Where a role attaches a relation to a
+type (every dog has an owner), a statement attaches a relation to
+specific elements (Rover chased Whiskers yesterday).
+
+\paragraph{Creating a relation.}
+Before you can state that Rover chased Whiskers, you need a relation
+object for ``chased.'' Relations are created with \textbf{new-relation}:
+
+\begin{verbatim}
+* (new-relation {chases} :a-inst-of {animal}
+                        :b-inst-of {animal})
+{zoo:chases}
+\end{verbatim}
+
+The \textbf{:a-inst-of} and \textbf{:b-inst-of} keywords constrain
+the allowed arguments --- both the chaser and the chased must be
+animals. Trying to state that a rock chased something would be
+flagged as incompatible.
+
+\paragraph{Making a statement.}
+Once the relation exists, \textbf{new-statement} asserts it of
+specific elements:
+
+\begin{verbatim}
+* (new-statement {Rover} {chases} {Whiskers})
+{zoo:Rover-chases-Whiskers}
+\end{verbatim}
+
+\paragraph{Asking about statements.}
+The predicate \textbf{statement-true?} answers yes/no questions,
+and \textbf{list-rel} / \textbf{show-rel} enumerate the things an
+element is related to:
+
+\begin{verbatim}
+* (statement-true? {Rover} {chases} {Whiskers})
+T
+* (list-rel {chases} {Rover})
+({zoo:Whiskers})
+\end{verbatim}
+
+\textbf{list-rel} returns the \emph{b} side of every \textbf{chases}
+statement whose \emph{a} side is Rover. Its mirror
+\textbf{list-rel-inverse} runs the query in the other direction:
+``everything that chases Whiskers.''
+
+\paragraph{Exercise.}
+Define a relation \textbf{\{likes\}} between two \textbf{\{animal\}}s
+and state that Whiskers likes Alice (hint: you will first need to
+make sure \textbf{\{Alice\}} is, or can be, a kind of
+\textbf{\{animal\}} --- or define \textbf{\{likes\}} more broadly).
+Query the statement with \textbf{statement-true?} to confirm.
+
+\section{Splits and Disjointness}\label{splits-and-disjointness}
+
+Earlier we saw that \textbf{is-x-a-y?} returned \textbf{:MAYBE}
+when asked whether Rover is a piece of furniture. That was because
+nothing in the KB had said ``nothing can be both a dog and a piece
+of furniture.'' \emph{Splits} are how you say that.
+
+A split declares that a set of types are pairwise disjoint: no
+element can be two of them at once. A \emph{complete} split adds
+the further claim that \emph{everything} under some common parent
+\emph{must} be one of them. For example, every person is either
+male or female (a complete split under \textbf{\{person\}}), but
+an animal might be a bird, mammal, reptile, fish, or something else
+--- that's a (plain) split, because not every split-member is
+enumerated.
+
+\paragraph{Creating a split.}
+
+\begin{verbatim}
+* (new-split '({mammal} {bird} {reptile} {fish}))
+{zoo:Split-87654}
+\end{verbatim}
+
+Now Scone knows these four types are incompatible with each other.
+Ask the same furniture question as before:
+
+\begin{verbatim}
+* (is-x-a-y? {Rover} {furniture})
+:MAYBE
+\end{verbatim}
+
+Still \textbf{:MAYBE}, because \textbf{\{furniture\}} is not in any
+split with the types Rover belongs to. But now try:
+
+\begin{verbatim}
+* (is-x-a-y? {Rover} {bird})
+:NO
+\end{verbatim}
+
+Scone can now \emph{rule out} Rover being a bird, because Rover
+is known to be a mammal and the split says no element can be both.
+
+\paragraph{Pre-flighting a new link.}
+Before actually creating a link that might cause a contradiction,
+you can ask \textbf{incompatible?}:
+
+\begin{verbatim}
+* (incompatible? {Rover} {bird})
+{mammal}
+\end{verbatim}
+
+The non-nil return identifies the ancestor that would clash (Rover
+is a mammal, mammals and birds are split). If the proposed link
+would be fine, \textbf{incompatible?} returns \textbf{nil}.
+
+\paragraph{Exercise.}
+Define a complete split under \textbf{\{pet\}} between
+\textbf{\{dog\}} and \textbf{\{cat\}}, then confirm that Scone
+reports \textbf{:NO} when you ask whether Rover is a cat.
+
+\section{Cancellation}\label{cancellation}
+
+Splits say ``these categories never overlap.'' Cancellation is the
+reverse: it lets one specific element \emph{opt out} of a fact that
+it would otherwise inherit. Classic example: birds fly, but
+penguins don't.
+
+\paragraph{Setting up the default.}
+
+\begin{verbatim}
+* (new-statement {bird} {can-do} {flying})
+{common:bird-can-do-flying}
+\end{verbatim}
+
+Every bird now inherits this fact. Confirm with a subtype:
+
+\begin{verbatim}
+* (new-type {robin} {bird})
+* (statement-true? {robin} {can-do} {flying})
+T
+\end{verbatim}
+
+\paragraph{Adding an exception.}
+To say penguins are the exception, cancel the inherited statement
+for \textbf{\{penguin\}}:
+
+\begin{verbatim}
+* (new-type {penguin} {bird})
+* (new-cancel {penguin} <the statement above>)
+\end{verbatim}
+
+In practice you identify the inherited statement by the element it
+was bound to, then pass that element to \textbf{new-cancel} as the
+second argument. The function signature is
+\textbf{(new-cancel a b \&key :context ...)}: everything below
+\textbf{a} has link \textbf{b} cancelled.
+
+After the cancel-link is in place:
+
+\begin{verbatim}
+* (statement-true? {penguin} {can-do} {flying})
+NIL
+* (statement-true? {robin} {can-do} {flying})
+T
+\end{verbatim}
+
+The inherited default still holds for other birds; it is only
+cancelled for penguins.
+
+\paragraph{Cancel or context?}
+Cancellation is local and permanent. If you need an exception that
+is only true in one situation --- say, ``in this fictional story,
+penguins \emph{can} fly'' --- you want a \emph{context} instead.
+Contexts are the subject of the next chapter.
+
+\paragraph{Exercise.}
+Cancel the \textbf{\{owner\}} role on a type \textbf{\{stray-dog\}}
+(which should be a subtype of \textbf{\{dog\}}). Then confirm that
+\textbf{(the-x-of-y \{owner\} \{some-stray\})} returns no owner.
+
+\section{Contexts}\label{contexts}
+
+Up to now every fact you've added has been true in ``reality.''
+But knowledge bases often need to represent beliefs, stories,
+hypotheses, or past and future states --- situations in which some
+facts differ from the baseline. Scone handles this with \emph{contexts}.
+
+A context is a node that groups a set of facts. Every link and
+every statement in Scone is implicitly tied to a context via its
+context-wire. When you ask a query, Scone only considers facts that
+are active in the current context (or in contexts inherited by it).
+
+\paragraph{The default context.}
+When you start Scone, the current context is \textbf{\{general\}}
+--- a descendant of the universal context \textbf{\{universal\}}.
+All the zoo facts you've added so far live in \textbf{\{general\}}.
+
+\paragraph{Creating a branching context.}
+Suppose you want to reason about a children's-book world in which
+penguins \emph{do} fly. Make a new context whose parent is the
+general context, so it inherits everything, then switch to it:
+
+\begin{verbatim}
+* (new-context {story-world} {general})
+{zoo:story-world}
+* (in-context {story-world})
+{zoo:story-world}
+\end{verbatim}
+
+Now add the fact that is true only in the story:
+
+\begin{verbatim}
+* (new-statement {penguin} {can-do} {flying})
+{zoo:penguin-can-do-flying}
+\end{verbatim}
+
+This statement is attached to \textbf{\{story-world\}}, not to
+\textbf{\{general\}}. In the story context, the earlier cancellation
+is overridden:
+
+\begin{verbatim}
+* (statement-true? {penguin} {can-do} {flying})
+T
+\end{verbatim}
+
+Switch back to reality and the cancellation takes effect again:
+
+\begin{verbatim}
+* (in-context {general})
+{general}
+* (statement-true? {penguin} {can-do} {flying})
+NIL
+\end{verbatim}
+
+\paragraph{Contexts form a hierarchy.}
+Contexts are is-a'd to their parent contexts. A query in
+\textbf{\{story-world\}} inherits everything true in
+\textbf{\{general\}}, then layers the story's own facts on top.
+This makes contexts a natural tool for episodic memory, belief
+modeling, simulation, and alternate-history reasoning.
+
+\paragraph{Exercise.}
+Create a context \textbf{\{stone-age\}} whose parent is
+\textbf{\{general\}}, switch to it, and assert that
+\textbf{\{electricity\}} does not exist (hint: use
+\textbf{new-is-not-a} or a cancel-link against a relevant parent).
+Query the same fact in \textbf{\{general\}} and in
+\textbf{\{stone-age\}} and observe the difference.
+
+\section{Saving Your Work}\label{saving-your-work}
+
+A Scone session is a live Lisp image. When you exit Lisp, the KB
+is gone. To persist the knowledge you've built, \emph{checkpoint}
+it to a file.
+
+\paragraph{Checkpointing everything.}
+
+\begin{verbatim}
+* (checkpoint-kb "zoo-snapshot")
+Checkpointed KB to #P".../kb/zoo-snapshot.lisp".
+\end{verbatim}
+
+\textbf{checkpoint-kb} writes every non-bootstrap element currently
+in memory to a plain Lisp source file. If you don't specify a path,
+the file goes under \textbf{*default-kb-pathname*} (set by
+\textbf{scone-loader.lisp} to your repo's \textbf{kb/} directory).
+
+\paragraph{Reloading the snapshot.}
+In a fresh Scone session, load the snapshot on top of
+\textbf{bootstrap} and \textbf{core}:
+
+\begin{verbatim}
+* (load "scone-loader.lisp")
+* (scone)
+* (load-kb "core")
+* (load-kb "zoo-snapshot")
+Loading KB "zoo-snapshot".
+Load of "zoo-snapshot" completed.  N elements total.
+\end{verbatim}
+
+Your zoo is back. Because the snapshot is plain text, you can also
+version-control it, hand-edit it, or share it.
+
+\paragraph{Checkpointing just the new stuff.}
+If your session built on top of \textbf{core}, and you only want to
+save the work you did yourself, use \textbf{checkpoint-new}
+instead:
+
+\begin{verbatim}
+* (checkpoint-new "zoo-additions")
+\end{verbatim}
+
+This writes out only the elements created since the last
+\textbf{load-kb} completed --- usually exactly the ones you typed.
+The resulting file is smaller and loads faster.
+
+\paragraph{Exercise.}
+Checkpoint the KB, then exit SBCL, start a fresh Scone, reload
+your snapshot, and confirm that \textbf{(is-x-a-y? \{Rover\}
+\{mammal\})} still returns \textbf{:YES}.
+
+\section{Where to Go Next}\label{where-to-go-next}
+
+You now know enough Scone to build a small KB, query it, and
+persist it. The next steps depend on what you want to do with the
+system.
+
+\paragraph{For depth on the API.}
+The \emph{Scone User's Guide} (in the same \textbf{manual/}
+directory as this tutorial) is the reference work. It documents
+every function and variable in the engine, organized by subsystem.
+In particular, look at:
+
+\begin{itemize}
+\item
+  \emph{Scone Elements} and \emph{Adding Elements to the Scone KB}
+  for the full set of element-creation functions (\textbf{new-type},
+  \textbf{new-indv}, \textbf{new-map}, \textbf{new-relation}, and
+  their many keyword arguments).
+\item
+  \emph{Markers} and \emph{Marker Scans} for the low-level
+  primitives underneath \textbf{list-all-x}, \textbf{is-x-a-y?},
+  and the rest. If you ever need to write a custom query that
+  isn't already provided, these are the tools you'll reach for.
+\item
+  \emph{Consistency Checking} for the \textbf{find-split-violations}
+  / \textbf{incompatible?} / \textbf{find-path} family --- useful
+  for auditing a large KB.
+\end{itemize}
+
+\paragraph{For the theory.}
+Scone descends from Scott E.\ Fahlman's earlier NETL system. The
+book-length treatment is his 1979 MIT Press volume \emph{NETL: A
+System for Representing and Using Real-World Knowledge}. The ideas
+behind the marker-passing, parallel-inheritance style of knowledge
+representation --- the core of why Scone is shaped the way it is
+--- are laid out there. Scott Fahlman's ``Knowledge Nuggets'' blog
+at \url{http://www.cs.cmu.edu/~nuggets/} contains more recent
+essay-length commentary on the Scone design and its applications.
+
+\paragraph{For broader lexical coverage.}
+The \textbf{kb/lexical-components/} directory contains WordNet-derived
+knowledge bases that can be layered on top of \textbf{core}. These
+files are large and slow to load, but if you want Scone to understand
+a wide vocabulary of English words, \textbf{(load-kb
+"lexical-components/wordnet-concepts")} is the place to start.
+
+\paragraph{For your own application.}
+The intended model is that you write your own KB file (just a Lisp
+source file using \textbf{new-type}, \textbf{new-indv}, etc.)
+and load it on top of \textbf{core}. Once your KB is in place,
+Scone is just another library your application calls.
+
+That's the full tour. Happy reasoning.
+
+\end{document}
