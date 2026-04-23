@@ -351,17 +351,21 @@ functions for this:
 \paragraph{What kinds of dogs are there?}
 
 \begin{verbatim}
-* (list-all-x {dog})
+* (list-inferiors {dog})
 ({zoo:Lassie} {zoo:Fido} {zoo:Rover} ...)
 \end{verbatim}
 
-\textbf{list-all-x} returns every element that is an instance or
-subtype of its argument. There's also a \textbf{show-all-x} that
-prints the result in a readable form with some indentation:
+\textbf{list-inferiors} returns every element reachable downward
+from its argument --- both subtypes and instances. There's also a
+\textbf{show-inferiors} that prints the result in a readable form:
 
 \begin{verbatim}
-* (show-all-x {dog})
+* (show-inferiors {dog})
 \end{verbatim}
+
+If you want only one or the other, use \textbf{list-subtypes} /
+\textbf{show-subtypes} (type nodes only) or \textbf{list-instances}
+/ \textbf{show-instances} (individuals only).
 
 \paragraph{Surveying the ontology.}
 \textbf{show-ontology} prints the full is-a tree below a given
@@ -773,7 +777,7 @@ In particular, look at:
   their many keyword arguments).
 \item
   \emph{Markers} and \emph{Marker Scans} for the low-level
-  primitives underneath \textbf{list-all-x}, \textbf{is-x-a-y?},
+  primitives underneath \textbf{list-inferiors}, \textbf{is-x-a-y?},
   and the rest. If you ever need to write a custom query that
   isn't already provided, these are the tools you'll reach for.
 \item
