@@ -16,6 +16,18 @@
 (setq *wordnet-default-features*
       '(:wordnet :noun))
 
+(defun new-wordnet-element (iname parent)
+  "Call NEW-TYPE for a WordNet synset, without making the INAME an
+   English name.  If INAME already exists as a forward-reference
+   placeholder under {undefined thing}, NEW-TYPE re-parents it, but
+   the placeholder was created with its INAME as an English name, so
+   remove that name here."
+  (let* ((old (lookup-element iname))
+	 (e (new-type iname parent :english :no-iname)))
+    (when old
+      (unregister-definition (internal-name e) e))
+    e))
+
 (defun new-wordnet-type (iname
 			 parent
 			 &key (features *wordnet-default-features*))
@@ -32,10 +44,13 @@
 
    This function also suppresses adding the INAME as one of the
    English names for this concept."
-   ;; Skip duplicates.  Create the new type-node.
-   (unless (lookup-element iname)
+   ;; Skip duplicates.  Create the new type-node.  An element that
+   ;; exists only as a forward-reference placeholder under {undefined
+   ;; thing} is not a duplicate: NEW-TYPE will re-parent it.
+   (unless (let ((old (lookup-element iname)))
+	     (and old (not (eq (parent-wire old) *undefined-thing*))))
      ;; Add the features for this new type-node.
-     (let ((e (new-type iname parent :english :no-iname)))
+     (let ((e (new-wordnet-element iname parent)))
        (dolist (f features)
 	 (set-element-property e f))
        e)))
@@ -47,7 +62,7 @@
   "Create a new action-type structure in Scone, based
    on a WordNet synset.  The INAME is something like {run.v.01} and
    the PARENT is some other wordnet or native-scone type-node."
-  (let ((e (new-type iname parent :english :no-iname)))
+  (let ((e (new-wordnet-element iname parent)))
     ;; Make sure it's an action.
     (unless (eq :yes (is-x-a-y? e *action*))
       (new-is-a e *action*))
